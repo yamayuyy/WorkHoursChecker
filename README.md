@@ -41,7 +41,6 @@ Google カレンダーの予定から稼働時間を自動計算し、想定給�
 ### 2. 拡張機能の設定
 
 1. `manifest.json`の`YOUR_CLIENT_ID`を取得した Client ID に置き換え
-2. `YOUR_EXTENSION_KEY`は任意の文字列に置き換え（開発時は不要）
 
 ### 3. Chrome 拡張機能のインストール
 
