@@ -10,7 +10,7 @@
 		"default_title": "Work Hours Checker"
 	},
 	"oauth2": {
-		"client_id": "789478619179-qgc9cv8c7d3gr8vkicbmmapjdi7q07lb.apps.googleusercontent.com",
+		"client_id": "789478619179-asecu01d4r3al45g715c7qvsc25ii0af.apps.googleusercontent.com",
 		"scopes": ["https://www.googleapis.com/auth/calendar.readonly"]
 	}
 }

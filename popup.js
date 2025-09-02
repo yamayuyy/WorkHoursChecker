@@ -4,6 +4,9 @@ const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
 
 let gapi, googleAuth;
 
+// グローバル変数でトークンを保存
+let currentAuthToken = null;
+
 // DOM要素
 const authButton = document.getElementById('auth-button');
 const authStatus = document.getElementById('auth-status');
@@ -67,23 +70,35 @@ async function initializeGapi() {
 	}
 }
 
-// 認証処理
+// 認証処理（修正版）
 async function handleAuth() {
 	try {
 		authButton.textContent = '認証中...';
 		authButton.disabled = true;
 
-		const token = await chrome.identity.getAuthToken({
-			interactive: true,
-			scopes: [SCOPES],
-		});
+		// 既存のトークンをクリア
+		await chrome.identity.clearAllCachedAuthTokens();
+
+		// フォールバック認証を実行
+		const token = await getGoogleAuthToken();
 
 		if (token) {
-			authStatus.textContent = '認証成功！';
-			authStatus.className = 'status success';
-			authStatus.classList.remove('hidden');
-			mainContent.classList.remove('hidden');
-			authButton.style.display = 'none';
+			// トークンをテスト
+			const testResponse = await fetch(
+				'https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + token
+			);
+			if (testResponse.ok) {
+				// トークンをグローバル変数に保存
+				currentAuthToken = token;
+
+				authStatus.textContent = '認証成功！';
+				authStatus.className = 'status success';
+				authStatus.classList.remove('hidden');
+				mainContent.classList.remove('hidden');
+				authButton.style.display = 'none';
+			} else {
+				throw new Error('トークンが無効です');
+			}
 		}
 	} catch (error) {
 		console.error('認証エラー:', error);
@@ -91,6 +106,67 @@ async function handleAuth() {
 		authButton.textContent = 'Googleアカウントでログイン';
 		authButton.disabled = false;
 	}
+}
+
+// フォールバック認証メカニズム
+function getGoogleAuthToken() {
+	return new Promise((resolve, reject) => {
+		// 方法1: chrome.identity.getAuthToken を試す
+		chrome.identity.getAuthToken({ interactive: true }, function (token) {
+			if (chrome.runtime.lastError) {
+				console.log('getAuthToken失敗、WebFlowにフォールバック:', chrome.runtime.lastError);
+				// 方法2: launchWebAuthFlow にフォールバック
+				authenticateWithWebFlow().then(resolve).catch(reject);
+				return;
+			}
+			resolve(token);
+		});
+	});
+}
+
+// WebFlow認証の実装
+function authenticateWithWebFlow() {
+	return new Promise((resolve, reject) => {
+		const clientId = '789478619179-asecu01d4r3al45g715c7qvsc25ii0af.apps.googleusercontent.com';
+		const redirectUri = chrome.identity.getRedirectURL();
+
+		console.log('リダイレクトURI:', redirectUri);
+
+		const scope = 'https://www.googleapis.com/auth/calendar.readonly';
+
+		const authUrl =
+			`https://accounts.google.com/o/oauth2/auth` +
+			`?client_id=${clientId}` +
+			`&response_type=token` +
+			`&redirect_uri=${encodeURIComponent(redirectUri)}` +
+			`&scope=${encodeURIComponent(scope)}`;
+
+		chrome.identity.launchWebAuthFlow(
+			{
+				url: authUrl,
+				interactive: true,
+			},
+			function (redirectUrl) {
+				if (chrome.runtime.lastError) {
+					reject(chrome.runtime.lastError);
+					return;
+				}
+
+				try {
+					console.log('リダイレクトURL:', redirectUrl);
+					const params = new URLSearchParams(new URL(redirectUrl).hash.substring(1));
+					const accessToken = params.get('access_token');
+					if (accessToken) {
+						resolve(accessToken);
+					} else {
+						reject(new Error('Access token not found in redirect URL'));
+					}
+				} catch (e) {
+					reject(e);
+				}
+			}
+		);
+	});
 }
 
 // 計算処理
@@ -127,10 +203,15 @@ async function handleCalculate() {
 	}
 }
 
-// カレンダーイベント取得
+// カレンダーイベント取得（修正版）
 async function getCalendarEvents(searchTitle) {
 	try {
-		const token = await chrome.identity.getAuthToken({ interactive: false });
+		// 保存されたトークンを使用、なければ新しく取得
+		let token = currentAuthToken;
+		if (!token) {
+			token = await getGoogleAuthToken();
+			currentAuthToken = token;
+		}
 
 		// 今週の開始日と終了日を取得
 		const { startOfWeek, endOfWeek } = getThisWeekRange();
@@ -151,6 +232,13 @@ async function getCalendarEvents(searchTitle) {
 		);
 
 		if (!response.ok) {
+			// 401エラーの場合はトークンを再取得
+			if (response.status === 401) {
+				console.log('トークンが無効、再認証します');
+				currentAuthToken = null;
+				await chrome.identity.clearAllCachedAuthTokens();
+				throw new Error('認証が必要です。再度ログインしてください。');
+			}
 			throw new Error(`APIエラー: ${response.status}`);
 		}
 
