@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Work Hours Checker</title>
+		<link rel="stylesheet" href="popup.css" />
+	</head>
+	<body>
+		<div class="container">
+			<h1>稼働時間チェッカー</h1>
+
+			<div class="auth-section">
+				<button id="auth-button" class="btn btn-primary">Googleアカウントでログイン</button>
+				<div id="auth-status" class="status hidden"></div>
+			</div>
+
+			<div id="main-content" class="hidden">
+				<div class="input-section">
+					<div class="form-group">
+						<label for="search-title">検索タイトル:</label>
+						<input type="text" id="search-title" placeholder="例: 作業, 会議, プロジェクト名" />
+					</div>
+
+					<div class="form-group">
+						<label for="hourly-rate">時給 (円):</label>
+						<input type="number" id="hourly-rate" placeholder="2000" />
+					</div>
+
+					<button id="calculate-button" class="btn btn-secondary">今週の稼働時間を計算</button>
+				</div>
+
+				<div id="loading" class="loading hidden">
+					<div class="spinner"></div>
+					<p>カレンダーデータを取得中...</p>
+				</div>
+
+				<div id="results" class="results hidden">
+					<h2>今週の結果</h2>
+					<div class="result-item">
+						<span class="label">稼働時間:</span>
+						<span id="total-hours" class="value">0時間</span>
+					</div>
+					<div class="result-item">
+						<span class="label">想定給料:</span>
+						<span id="total-salary" class="value">¥0</span>
+					</div>
+
+					<div id="events-list" class="events-list">
+						<h3>該当する予定</h3>
+						<div id="events-container"></div>
+					</div>
+				</div>
+
+				<div id="error" class="error hidden"></div>
+			</div>
+		</div>
+
+		<script src="popup.js"></script>
+	</body>
+</html>

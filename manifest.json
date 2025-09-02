@@ -1,0 +1,16 @@
+{
+	"manifest_version": 3,
+	"name": "Work Hours Checker",
+	"version": "1.0",
+	"description": "Googleカレンダーから稼働時間を計算し、給料を算出するChrome拡張機能",
+	"permissions": ["identity", "storage"],
+	"host_permissions": ["https://www.googleapis.com/*"],
+	"action": {
+		"default_popup": "popup.html",
+		"default_title": "Work Hours Checker"
+	},
+	"oauth2": {
+		"client_id": "789478619179-qgc9cv8c7d3gr8vkicbmmapjdi7q07lb.apps.googleusercontent.com",
+		"scopes": ["https://www.googleapis.com/auth/calendar.readonly"]
+	}
+}
